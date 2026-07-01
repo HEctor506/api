@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from models.item import Item
 
 app = FastAPI()
 
@@ -14,7 +15,6 @@ def read_root():
     return {"message": "¡Hola, Fast API!"} 
 
 
-
 @app.get("/items/")
 def read_items(skip: int = 0, limit: int = 10, q: str | None = None):
     results = fake_items_db[skip : skip + limit]
@@ -23,7 +23,42 @@ def read_items(skip: int = 0, limit: int = 10, q: str | None = None):
     return results
 
 
-
 @app.get("/items/{item_id}")
 def read_item(item_id: int):
    return {"item_id": item_id}
+
+
+@app.post("/items/")
+def create_item(item: Item):
+   item_dict = item.model_dump()
+   if item_dict is not None:
+      fake_items_db.append(item_dict)
+   return item_dict
+
+
+
+#Parametro de ruta
+@app.put("/items/{item_name}")
+def update_item(item_name: str, item: Item): #Parametro de cuerpo
+   for i, fake_item in enumerate(fake_items_db):  #Fuerza bruta 
+      if fake_item["item_name"] == item_name:
+         fake_items_db[i] = item.model_dump()
+         return {"item_name": item_name, **item.model_dump()}
+   return {"error": "Item not found"}
+
+
+
+# 1 parametro de ruta y 1 parametro de consulta
+@app.put("/items/{item_name}/query")
+def update_item_with_query(item_name: str, item: Item, q: str | None = None):
+   for i, fake_item in enumerate(fake_items_db):
+      if fake_item["item_name"] == item_name:
+         fake_items_db[i] = item.model_dump()
+         response = {"item_name": item_name, **item.model_dump()}
+         if q:
+            response.update({"q": q})
+         return response
+   return {"error": "Item not found"}
+
+
+#No usar delete en base de datos
